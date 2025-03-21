@@ -1,0 +1,14 @@
+numpy
+pandas
+matplotlib
+seaborn
+scikit-learn
+torch
+torchvision
+torchaudio
+jupyter
+notebook
+tqdm
+plotly
+joblib
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
