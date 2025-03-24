@@ -16,15 +16,17 @@ train_loader, test_loader = get_dataloaders(BATCH_SIZE)
 anomaly_model = get_model(DEVICE)
 classifier_model = get_classifier(DEVICE)
 
-# Loss & Optimizer
+# Loss     (CBC)  -> log loss
 criterion_anomaly = nn.CrossEntropyLoss()
 criterion_classification = nn.CrossEntropyLoss()
+
+# Optimizer (DK)
 optimizer = optim.Adam(
     list(anomaly_model.parameters()) + list(classifier_model.parameters()), lr=LR
 )
 
 def train():
-    anomaly_model.train()
+    anomaly_model.train()           # set model to training mode
     classifier_model.train()
     
     for epoch in range(EPOCHS):
@@ -34,7 +36,7 @@ def train():
                 signals.to(DEVICE), anomaly_labels.to(DEVICE), class_labels.to(DEVICE)
             )
             
-            optimizer.zero_grad()
+            optimizer.zero_grad()       # zero the parameter gradients
             anomaly_preds = anomaly_model(signals)
             class_preds = classifier_model(signals)
 
@@ -51,6 +53,7 @@ def train():
             total += anomaly_labels.size(0)
 
         print(f"Epoch {epoch+1}: Loss {total_loss:.4f}, Anomaly Acc {correct_anomaly/total:.4f}, Class Acc {correct_class/total:.4f}")
+        
     
     torch.save(anomaly_model.state_dict(), "models/anomaly_model.pth")
     torch.save(classifier_model.state_dict(), "models/classifier_model.pth")
