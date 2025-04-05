@@ -5,8 +5,8 @@ from preprocessing import get_dataloaders
 from anomaly_detection import get_model
 from classification import get_classifier
 
-BATCH_SIZE = 32
-EPOCHS = 20
+BATCH_SIZE = 10
+EPOCHS = 10
 LR = 0.001
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

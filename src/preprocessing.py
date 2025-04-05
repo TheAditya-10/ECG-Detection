@@ -10,38 +10,39 @@ SEQ_LEN = 360  # Fixed sequence length for transformer input -> Why 360 ?
 
 class ECGDataset(Dataset):
     def __init__(self, data_dir, seq_len=SEQ_LEN, augment=False):
-        self.records = [f[:-4] for f in os.listdir(data_dir) if f.endswith('.dat')]     # Get record names as list of String without .dat
+        self.records = [f[:-4] for f in os.listdir(data_dir) if f.endswith('.dat')]  # Get record names as list of strings without .dat
         self.data_dir = data_dir
         self.seq_len = seq_len
         self.augment = augment
 
     def __len__(self):
-        return len(self.records)
+        return len(self.records) * (648000 // self.seq_len)  # Total number of 1-second segments across all records
 
     def __getitem__(self, idx):
-        record = self.records[idx]
+        # Determine which record and segment to load
+        record_idx = idx // (648000 // self.seq_len)  # Record index
+        segment_idx = idx % (648000 // self.seq_len)  # Segment index within the record
+
+        record = self.records[record_idx]
         try:
-            signals, _ = wfdb.rdsamp(os.path.join(self.data_dir, record))       # The signal is returned as a 2D array (channels × samples)
+            signals, _ = wfdb.rdsamp(os.path.join(self.data_dir, record))  # Read the full signal
         except Exception as e:
             raise RuntimeError(f"Error reading record {record}: {e}")
 
-
-        # # Modifying Steps (CBC)
-
         # Use only the first lead
-        signals = signals[:, 0]
+        signals = signals[:, 1]
 
-        # Resample to fixed length
-        signals = resample(signals, self.seq_len)
+        # Extract the 1-second segment
+        start = segment_idx * self.seq_len
+        end = start + self.seq_len
+        segment = signals[start:end]
 
-        # Normalize signals
-        signals = (signals - np.mean(signals)) / np.std(signals)
+        # Normalize the segment
+        segment = (segment - np.mean(segment)) / np.std(segment)
 
         # Optional data augmentation
         if self.augment:
-            signals = self._augment_signal(signals)
-
-
+            segment = self._augment_signal(segment)
 
         # Simulated labels - replace with real ones
         if "normal" in record:
@@ -56,20 +57,20 @@ class ECGDataset(Dataset):
             anomaly_label, class_label = 1, 4
 
         return (
-            torch.tensor(signals, dtype=torch.float32), 
+            torch.tensor(segment, dtype=torch.float32),
             torch.tensor(anomaly_label, dtype=torch.long),
-            torch.tensor(class_label, dtype=torch.long)
+            torch.tensor(class_label, dtype=torch.long),
         )
 
-    def _augment_signal(self, signal):
+    def _augment_signal(self, segment):
         """Apply random noise or scaling for data augmentation."""
         if np.random.rand() < 0.5:
-            noise = np.random.normal(0, 0.01, size=signal.shape)
-            signal += noise
+            noise = np.random.normal(0, 0.01, size=segment.shape)
+            segment += noise
         if np.random.rand() < 0.5:
             scale = np.random.uniform(0.9, 1.1)
-            signal *= scale
-        return signal
+            segment *= scale
+        return segment
 
 def get_dataloaders(batch_size=32, train_split=0.8, augment=False):
     dataset = ECGDataset(DATA_DIR, augment=augment)
