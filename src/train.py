@@ -4,9 +4,10 @@ import torch.nn as nn
 from preprocessing import get_dataloaders
 from anomaly_detection import get_model
 from classification import get_classifier
+from tqdm import tqdm  # Import tqdm for progress bar
 
-BATCH_SIZE = 10
-EPOCHS = 10
+BATCH_SIZE = 100
+EPOCHS = 5
 LR = 0.001
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -26,17 +27,21 @@ optimizer = optim.Adam(
 )
 
 def train():
-    anomaly_model.train()           # set model to training mode
+    anomaly_model.train()           # Set model to training mode
     classifier_model.train()
     
     for epoch in range(EPOCHS):
         total_loss, correct_anomaly, correct_class, total = 0, 0, 0, 0
-        for signals, anomaly_labels, class_labels in train_loader:
+        
+        # Wrap the DataLoader with tqdm for a progress bar
+        progress_bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{EPOCHS}", unit="batch")
+        
+        for signals, anomaly_labels, class_labels in progress_bar:
             signals, anomaly_labels, class_labels = (
                 signals.to(DEVICE), anomaly_labels.to(DEVICE), class_labels.to(DEVICE)
             )
             
-            optimizer.zero_grad()       # zero the parameter gradients
+            optimizer.zero_grad()       # Zero the parameter gradients
             anomaly_preds = anomaly_model(signals)
             class_preds = classifier_model(signals)
 
@@ -51,10 +56,17 @@ def train():
             correct_anomaly += (anomaly_preds.argmax(dim=1) == anomaly_labels).sum().item()
             correct_class += (class_preds.argmax(dim=1) == class_labels).sum().item()
             total += anomaly_labels.size(0)
+            
+            # Update progress bar with current loss
+            progress_bar.set_postfix(
+                loss=f"{loss.item():.4f}", 
+                anomaly_acc=f"{correct_anomaly/total:.4f}", 
+                class_acc=f"{correct_class/total:.4f}"
+            )
 
         print(f"Epoch {epoch+1}: Loss {total_loss:.4f}, Anomaly Acc {correct_anomaly/total:.4f}, Class Acc {correct_class/total:.4f}")
         
-    
+    # Save the models after training
     torch.save(anomaly_model.state_dict(), "models/anomaly_model.pth")
     torch.save(classifier_model.state_dict(), "models/classifier_model.pth")
 

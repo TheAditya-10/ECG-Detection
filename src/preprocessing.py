@@ -6,14 +6,16 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 
 DATA_DIR = "data/mitdb"
-SEQ_LEN = 360  # Fixed sequence length for transformer input -> Why 360 ?
+SEQ_LEN = 360  
+TRANSFORM_LEN = 12 # Fixed sequence length for transformer input -> Why 360 ?
 
 class ECGDataset(Dataset):
-    def __init__(self, data_dir, seq_len=SEQ_LEN, augment=False):
+    def __init__(self, data_dir, seq_len=SEQ_LEN, transform_len = TRANSFORM_LEN, augment=False):
         self.records = [f[:-4] for f in os.listdir(data_dir) if f.endswith('.dat')]  # Get record names as list of strings without .dat
         self.data_dir = data_dir
         self.seq_len = seq_len
         self.augment = augment
+        self.transform_len = transform_len
 
     def __len__(self):
         return len(self.records) * (648000 // self.seq_len)  # Total number of 1-second segments across all records
@@ -36,6 +38,9 @@ class ECGDataset(Dataset):
         start = segment_idx * self.seq_len
         end = start + self.seq_len
         segment = signals[start:end]
+
+        # Resample the segment to 120 Hz
+        segment = resample(segment, self.transform_len)
 
         # Normalize the segment
         segment = (segment - np.mean(segment)) / np.std(segment)
@@ -76,7 +81,7 @@ def get_dataloaders(batch_size=32, train_split=0.8, augment=False):
     dataset = ECGDataset(DATA_DIR, augment=augment)
     train_size = int(train_split * len(dataset))
     test_size = len(dataset) - train_size
-    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])       # Randomly split dataset into non-overlapping new datasets of given lengths (CBC)
+    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size], generator=torch.Generator().manual_seed(42))  # Randomly split dataset with a fixed seed for reproducibility
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=batch_size)
     return train_loader, test_loader

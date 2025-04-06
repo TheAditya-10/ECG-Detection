@@ -1,4 +1,5 @@
 /.ipynb_checkpoints
-/archive.zip
+/mitdb.zip
 /Papers
 /venv
+/src/__pycache__
