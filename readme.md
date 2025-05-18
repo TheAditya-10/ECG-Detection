@@ -1,4 +1,4 @@
-# ECG Transformer-based Classification and Anomaly Detection
+## ECG Transformer-based Classification and Anomaly Detection
 
 ## Overview
 
@@ -16,7 +16,7 @@ This project implements deep learning models based on Transformer architectures 
 
 
 ## Project Structure
----
+```
 ECG Detection/
 │
 ├── src/
@@ -33,9 +33,7 @@ ECG Detection/
 │
 ├── readme.txt                    # Project documentation
 └── requirements.txt              # Python dependencies
-
----
-
+```
 ## Data Preprocessing
 
 - **Segmentation:**  
