@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 class ECGClassifier(nn.Module):
-    def __init__(self, input_dim=1, d_model=128, nhead=4, num_layers=2, num_classes=21):
+    def __init__(self, input_dim=1, d_model=128, nhead=4, num_layers=2, num_classes=10):
         super().__init__()
         self.embed = nn.Linear(input_dim, d_model)
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, batch_first=True)

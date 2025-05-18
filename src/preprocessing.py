@@ -4,6 +4,7 @@ import wfdb
 from scipy.signal import resample
 import torch
 from torch.utils.data import Dataset, DataLoader
+import random
 
 DATA_DIR = "data/mitdb"
 SEQ_LEN = 360
@@ -41,9 +42,6 @@ class ECGDataset(Dataset):
         end = start + self.seq_len
         segment = signals[start:end]
 
-        # Print the segment for debugging
-        # print(segment)
-
         # Fetch labels for the segment
         anomaly_label, class_label = self.get_labels(annotation, start, end)
 
@@ -71,18 +69,6 @@ class ECGDataset(Dataset):
             "J": (1, 7),  # Nodal (junctional) premature beat
             "E": (1, 8),  # Ventricular escape beat
             "/": (1, 9),  # Paced beat
-            "Q": (1, 10),  # Unclassifiable beat
-            "?": (1, 11),  # Unclassifiable beat
-            "(N": (0, 0),  # Normal sinus rhythm
-            "(AFIB": (1, 12),  # Atrial fibrillation
-            "(AFL": (1, 13),  # Atrial flutter
-            "(SVTA": (1, 14),  # Supraventricular tachyarrhythmia
-            "(VT": (1, 15),  # Ventricular tachycardia
-            "(IVR": (1, 16),  # Idioventricular rhythm
-            "(VFL": (1, 17),  # Ventricular flutter
-            "(PACE": (1, 18),  # Pacemaker rhythm
-            "(B": (1, 19),  # Bigeminy
-            "(T": (1, 20),  # Trigeminy
         }
 
         # Initialize labels for the segment
@@ -122,7 +108,7 @@ def preprocessing_pipeline(segment, augment=False):
 def get_dataloaders(batch_size=32, train_split=0.8, augment=False):
     # Get all record names
     all_records = [f[:-4] for f in os.listdir(DATA_DIR) if f.endswith('.dat')]
-
+    random.shuffle(all_records)  # Shuffle records for randomness
     # Split records into training and test sets
     train_size = int(train_split * len(all_records))
     train_records = all_records[:train_size]

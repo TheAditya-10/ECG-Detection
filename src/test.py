@@ -16,8 +16,13 @@ _, test_loader = get_dataloaders(BATCH_SIZE)
 # Load the saved models
 anomaly_model = get_model(DEVICE)
 classifier_model = get_classifier(DEVICE)
-anomaly_model.load_state_dict(torch.load("models/anomaly_model.pth"))
-classifier_model.load_state_dict(torch.load("models/classifier_model.pth"))
+
+# For PyTorch >= 2.3, if you want to use weights_only (optional for extra safety)
+state_dict = torch.load("models/best_anomaly_model.pth", weights_only=True)
+anomaly_model.load_state_dict(state_dict)
+
+state_dict = torch.load("models/best_classifier_model.pth", weights_only=True)
+classifier_model.load_state_dict(state_dict)
 
 # Set models to evaluation mode
 anomaly_model.eval()

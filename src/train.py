@@ -4,7 +4,8 @@ import torch.nn as nn
 from preprocessing import get_dataloaders
 from anomaly_detection import get_model
 from classification import get_classifier
-from tqdm import tqdm  # Import tqdm for progress bar
+from tqdm import tqdm
+import numpy as np
 
 BATCH_SIZE = 100
 EPOCHS = 5
@@ -13,15 +14,54 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 train_loader, test_loader = get_dataloaders(BATCH_SIZE)
 
+def compute_weighted_loss(train_loader, device, num_anomaly_classes=2, num_class_classes=10):
+    """Compute class weights for anomaly and classification tasks with progress bar."""
+    all_anomaly_labels = []
+    all_class_labels = []
+    dataset = train_loader.dataset
+    desc = "Collecting labels for class weights"
+    for _, anomaly_label, class_label in tqdm(dataset, desc=desc, unit="sample"):
+        all_anomaly_labels.append(anomaly_label.item())
+        all_class_labels.append(class_label.item())
+
+    # Print present and missing classes for debugging
+    present_classes = np.unique(all_class_labels)
+    all_possible_classes = np.arange(num_class_classes)
+    missing_classes = set(all_possible_classes) - set(present_classes)
+    print("Present classes:", present_classes)
+    print("Missing classes:", missing_classes)
+
+    # Anomaly weights (always 2 classes)
+    anomaly_counts = np.bincount(all_anomaly_labels, minlength=num_anomaly_classes)
+    anomaly_weights = np.zeros(num_anomaly_classes, dtype=np.float32)
+    nonzero = anomaly_counts > 0
+    anomaly_weights[nonzero] = 1.0 / anomaly_counts[nonzero]
+    anomaly_weights = anomaly_weights / anomaly_weights.sum()  # Normalize
+
+    # Class weights (always 10 classes)
+    class_counts = np.bincount(all_class_labels, minlength=num_class_classes)
+    class_weights = np.zeros(num_class_classes, dtype=np.float32)
+    nonzero = class_counts > 0
+    class_weights[nonzero] = 1.0 / class_counts[nonzero]
+    class_weights = class_weights / class_weights.sum()  # Normalize
+
+    # Convert to torch tensors and move to device
+    anomaly_weights = torch.tensor(anomaly_weights, dtype=torch.float32).to(device)
+    class_weights = torch.tensor(class_weights, dtype=torch.float32).to(device)
+    return anomaly_weights, class_weights
+
+# Compute weighted loss using the function (with progress bar)
+anomaly_weights, class_weights = compute_weighted_loss(train_loader, DEVICE, num_anomaly_classes=2, num_class_classes=10)
+
 # Load models
 anomaly_model = get_model(DEVICE)
 classifier_model = get_classifier(DEVICE)
 
-# Loss functions
-criterion_anomaly = nn.CrossEntropyLoss()
-criterion_classification = nn.CrossEntropyLoss()
+# Loss functions (apply weights)
+criterion_anomaly = nn.CrossEntropyLoss(weight=anomaly_weights)
+criterion_classification = nn.CrossEntropyLoss(weight=class_weights)
 
-# Optimizer
+# Optimizer for updating weights
 optimizer = optim.Adam(
     list(anomaly_model.parameters()) + list(classifier_model.parameters()), lr=LR
 )
@@ -32,7 +72,7 @@ def validate():
     classifier_model.eval()
     total_loss, correct_anomaly, correct_class, total = 0, 0, 0, 0
 
-    with torch.no_grad():  # Disable gradient computation for validation
+    with torch.no_grad():
         for signals, anomaly_labels, class_labels in test_loader:
             signals, anomaly_labels, class_labels = (
                 signals.to(DEVICE), anomaly_labels.to(DEVICE), class_labels.to(DEVICE)
@@ -114,4 +154,5 @@ def train():
             print(f"Saved best classifier model with accuracy {best_class_acc:.4f}")
 
 if __name__ == "__main__":
+    print("Training and testing the model...")
     train()
