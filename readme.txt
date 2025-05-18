@@ -4,8 +4,6 @@
 
 This project implements deep learning models based on Transformer architectures for ECG (Electrocardiogram) signal classification and anomaly detection. The pipeline includes data preprocessing, model training with class-imbalance handling, and evaluation. The MIT-BIH Arrhythmia Database (mitdb) is used as the primary dataset.
 
----
-
 ## Dataset: MIT-BIH Arrhythmia Database (mitdb)
 
 - **Source:** [PhysioNet MIT-BIH Arrhythmia Database](https://physionet.org/content/mitdb/1.0.0/)
@@ -16,10 +14,9 @@ This project implements deep learning models based on Transformer architectures 
   - Each ECG record is segmented into 1-second windows (typically 360 samples per segment).
   - Each segment is labeled for both anomaly detection (binary: normal vs. abnormal) and multi-class classification (10 beat types).
 
----
 
 ## Project Structure
-
+---
 ECG Detection/
 │
 ├── src/
@@ -61,7 +58,6 @@ ECG Detection/
 - **Class Imbalance:**  
   Weighted loss is computed based on class frequencies in the training set.
 
----
 
 ## Model Architectures
 
@@ -83,7 +79,6 @@ ECG Detection/
   - Global average pooling
   - Fully connected output layer (2 classes)
 
----
 
 ## Training (train.py)
 
@@ -94,7 +89,6 @@ ECG Detection/
 - **Validation:**  
   After each epoch, models are evaluated on the test set. The best models are saved based on validation accuracy.
 
----
 
 ## Evaluation (test.py)
 
@@ -104,7 +98,6 @@ ECG Detection/
 - **Handling Class Imbalance:**  
   Weighted loss and metrics ensure fair evaluation even for rare classes.
 
----
 
 ## How to Run
 
@@ -117,7 +110,6 @@ ECG Detection/
 3. **Evaluate the Models:**  
    Run `test.py` to evaluate the trained models on the test set. Check the metrics and classification reports.
 
----
 
 ## References
 
@@ -129,11 +121,9 @@ ECG Detection/
 4. Code for anomaly detection using Transformer:
    - [Link to Anomaly Detection Code](https://github.com/yourusername/ecg-anomaly-detection)
 
----
 
 ## Acknowledgments
 
 - The authors of the MIT-BIH Arrhythmia Database for providing the dataset.
 - The developers of PyTorch and other libraries used in this project.
 
----
